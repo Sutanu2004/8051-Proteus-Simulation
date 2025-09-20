@@ -1,12 +1,12 @@
 # 8051-Proteus-Simulation
 An entire 8051 development board simulated in Proteus, interfaced with external RAM, 8255 port extender
-# 8085 Microprocessor System with 8255, External RAM, and Address Decoding
+# 8051 Microcontroller System with 8255, External RAM, and Address Decoding
 
 ## Overview
 
-This project implements a complete **8085 microprocessor-based system** in Proteus. The system integrates:
+This project implements a complete **8051 microcontroller-based system** in Proteus. The system integrates:
 
-* The **8085 CPU**
+* The **8051 CPU**
 * An **8255 Programmable Peripheral Interface (PPI)** as a port extender
 * **External SRAM (6264)** for read/write memory
 * Address decoding using a **74HC154** or **74HC138**
@@ -18,7 +18,7 @@ The system allows executing user programs that control LEDs, read inputs, and pe
 
 ## Components Used
 
-* **8085 Microprocessor** – core CPU
+* **8051 Microcontroller** – core CPU
 * **8255 PPI** – used for I/O port expansion
 * **6264 SRAM (8KB)** – external memory for data storage
 * **74LS373** – latching lower address byte (A0–A7)
@@ -32,7 +32,7 @@ The system allows executing user programs that control LEDs, read inputs, and pe
 
 ### 1. Address/Data Bus Multiplexing
 
-* The **8085 (like the 8051)** multiplexes **A0–A7 with D0–D7** on AD0–AD7.
+* The **8051** multiplexes **A0–A7 with D0–D7** on Port 0.
 * A **74LS373 latch** is used with **ALE** to capture A0–A7 for stable addressing.
 
 ### 2. Address Decoding
@@ -47,7 +47,7 @@ The system allows executing user programs that control LEDs, read inputs, and pe
 
 * Connected as 8-bit parallel SRAM.
 * Address lines: A0–A12 (13 bits → 8KB)
-* Data lines: D0–D7 ↔ CPU data bus (AD0–AD7)
+* Data lines: D0–D7 ↔ CPU data bus (Port 0)
 * **/CE** = decoded select for 9000H–9FFFH
 * **/OE** = RD from CPU
 * **/WE** = WR from CPU
@@ -75,30 +75,50 @@ The system allows executing user programs that control LEDs, read inputs, and pe
 ### Example 1: Configure 8255
 
 ```assembly
-MVI A, 80H    ; Set Port A output, others input
-OUT E803H     ; Write control word to 8255
+MOV DPTR, #0E803H   ; Control register
+MOV A, #80H         ; Set Port A output, others input
+MOVX @DPTR, A       ; Write control word to 8255
 ```
 
 ### Example 2: Write to External RAM
 
 ```assembly
-LXI H, 9550H
-MVI A, 55H
-SHLD 9550H    ; Write 55H at 9550H
+MOV DPTR, #9550H
+MOV A, #55H
+MOVX @DPTR, A       ; Write 55H at 9550H
+
+MOV DPTR, #9550H
+MOVX A, @DPTR       ; Read back into A
 ```
 
 ### Example 3: Blink LED on Port A
 
 ```assembly
-MVI A, 82H
-OUT E803H      ; Port A as output
-LOOP: MVI A, 01H
-OUT E800H      ; Write 01H to Port A
-CALL DELAY
-MVI A, 00H
-OUT E800H
-CALL DELAY
-JMP LOOP
+ORG 8100H
+
+MOV DPTR, #0E803H   ; Control register
+MOV A, #82H         ; Port A as output
+MOVX @DPTR, A
+
+LOOP:
+    MOV DPTR, #0E800H  ; Port A address
+    MOV A, #01H
+    MOVX @DPTR, A      ; Turn LED ON
+    ACALL DELAY
+
+    MOV A, #00H
+    MOVX @DPTR, A      ; Turn LED OFF
+    ACALL DELAY
+
+    SJMP LOOP
+
+; Simple delay subroutine
+DELAY:
+    MOV R2, #20
+D1: MOV R3, #200
+D2: DJNZ R3, D2
+    DJNZ R2, D1
+    RET
 ```
 
 ---
@@ -112,5 +132,6 @@ The system was fully simulated in **Proteus**. Key observations:
 * Writing to **9000H–9FFFH** stores and retrieves data from the 6264.
 * Writing to **E803H** updates the 8255 control register.
 
+---
+This setup can be expanded with peripherals like ROM, displays, and serial interfaces, making it a complete embedded learning platform.
 
- peripherals like ROM, displays, and serial interfaces, making it a complete embedded learning platform.
